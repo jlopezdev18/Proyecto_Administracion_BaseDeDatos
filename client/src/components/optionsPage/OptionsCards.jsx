@@ -151,9 +151,6 @@ const OptionsCards = () => {
                       border: "1px solid rgba(255, 255, 255, 0.2)",
                     },
                   }}
-                  onClick={() =>
-                    console.log("Selected converter:", converter.id)
-                  }
                 >
                   {/* Gradient Border Effect */}
                   <Box
@@ -212,6 +209,7 @@ const OptionsCards = () => {
                       fullWidth
                       variant="contained"
                       endIcon={<PlayArrowIcon />}
+                      onClick={() => navigate("/" + converter.id)}
                       sx={{
                         background: converter.gradient,
                         borderRadius: 2,
