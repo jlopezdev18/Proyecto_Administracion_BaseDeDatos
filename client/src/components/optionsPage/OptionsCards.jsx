@@ -151,9 +151,13 @@ const OptionsCards = () => {
                       border: "1px solid rgba(255, 255, 255, 0.2)",
                     },
                   }}
-                  onClick={() =>
-                    console.log("Selected converter:", converter.id)
-                  }
+                  onClick={() => {
+                    if (converter.id === "db-to-er") {
+                      navigate("/options/er");
+                    } else {
+                      console.log("Selected converter:", converter.id);
+                    }
+                  }}
                 >
                   {/* Gradient Border Effect */}
                   <Box
