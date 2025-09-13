@@ -216,6 +216,7 @@ const OptionsCards = () => {
                       fullWidth
                       variant="contained"
                       endIcon={<PlayArrowIcon />}
+                      onClick={() => navigate("/" + converter.id)}
                       sx={{
                         background: converter.gradient,
                         borderRadius: 2,
