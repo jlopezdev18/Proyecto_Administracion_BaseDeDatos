@@ -1,4 +1,4 @@
-const { poolPromise, sql } = require('../config/database');
+const { poolPromise } = require('../config/database');
 
 async function listDatabases(req, res) {
     try {
@@ -105,7 +105,6 @@ async function getTablesMetadataForDatabase(req, res) {
             ORDER BY t.TABLE_SCHEMA, t.TABLE_NAME, c.ORDINAL_POSITION;
         `);
 
-        // Group the flat result set into a structured object
         const tables = {};
         result.recordset.forEach((row) => {
             const tableKey = `${row.TABLE_SCHEMA}.${row.TABLE_NAME}`;

@@ -1,6 +1,16 @@
 import React, { useState } from "react";
-import { Box, Typography, TextField, Button, Container, IconButton } from "@mui/material";
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Container,
+  IconButton,
+  AppBar,
+  Toolbar,
+} from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useNavigate } from "react-router-dom";
 import { sqlAlgebra } from "../utils/sqlAlgebra";
 
@@ -15,18 +25,48 @@ const SqlAlgebra = () => {
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", background: "linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)", py: 4 }}>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        background:
+          "linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)",
+      }}
+    >
       {/* Header */}
-      <Box display="flex" alignItems="center" mb={4} px={2}>
-        <IconButton edge="start" color="inherit" onClick={() => navigate("/")} sx={{ mr: 2 }}>
-          <HomeIcon sx={{ color: "#fff" }} />
-        </IconButton>
-        <Typography variant="h4" sx={{ color: "#fff", fontWeight: 600 }}>
-          Conversor SQL → Álgebra Relacional
-        </Typography>
-      </Box>
+      <AppBar
+        position="static"
+        sx={{
+          background: "rgba(30, 41, 59, 0.95)",
+          backdropFilter: "blur(10px)",
+        }}
+      >
+        <Toolbar>
+          <IconButton
+            edge="start"
+            color="inherit"
+            onClick={() => navigate("/")}
+            sx={{ mr: 1 }}
+          >
+            <HomeIcon />
+          </IconButton>
+          <IconButton
+            color="inherit"
+            onClick={() => navigate("/options")}
+            sx={{ mr: 2 }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography
+            variant="h6"
+            component="h2"
+            sx={{ flexGrow: 1, fontWeight: 600 }}
+          >
+            Conversor SQL → Álgebra Relacional
+          </Typography>
+        </Toolbar>
+      </AppBar>
 
-      <Container maxWidth="md">
+      <Container maxWidth="md" sx={{ py: 3 }}>
         {/* Input SQL */}
         <Box mb={3}>
           <Typography variant="h6" sx={{ color: "#fff", mb: 1 }}>

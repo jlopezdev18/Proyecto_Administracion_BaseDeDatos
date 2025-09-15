@@ -1,6 +1,17 @@
 import React, { useState } from "react";
-import { Box, Typography, TextField, Button, Container, IconButton, Stack } from "@mui/material";
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Container,
+  IconButton,
+  Stack,
+  AppBar,
+  Toolbar,
+} from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useNavigate } from "react-router-dom";
 import { algebraSql } from "../utils/algebraSql";
 
@@ -19,53 +30,82 @@ const AlgebraToSql = () => {
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", background: "linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)", py: 4 }}>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        background:
+          "linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)",
+      }}
+    >
       {/* Header */}
-      <Box display="flex" alignItems="center" mb={4} px={2}>
-        <IconButton edge="start" color="inherit" onClick={() => navigate("/")} sx={{ mr: 2 }}>
-          <HomeIcon sx={{ color: "#fff" }} />
-        </IconButton>
-        <Typography variant="h4" sx={{ color: "#fff", fontWeight: 600 }}>
-          Conversor Álgebra → SQL
-        </Typography>
-      </Box>
+      <AppBar
+        position="static"
+        sx={{
+          background: "rgba(30, 41, 59, 0.95)",
+          backdropFilter: "blur(10px)",
+        }}
+      >
+        <Toolbar>
+          <IconButton
+            edge="start"
+            color="inherit"
+            onClick={() => navigate("/")}
+            sx={{ mr: 1 }}
+          >
+            <HomeIcon />
+          </IconButton>
+          <IconButton
+            color="inherit"
+            onClick={() => navigate("/options")}
+            sx={{ mr: 2 }}
+          >
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography
+            variant="h6"
+            component="h2"
+            sx={{ flexGrow: 1, fontWeight: 600 }}
+          >
+            Conversor Álgebra → SQL
+          </Typography>
+        </Toolbar>
+      </AppBar>
 
-      <Container maxWidth="md">
-
+      <Container maxWidth="md" sx={{ py: 3 }}>
         {/* Botones de los símbolos */}
-         <Stack direction="row" spacing={2} mb={2}>
-        <Button
-          variant="outlined"
-          onClick={() => insertSymbol("π")}
-          sx={{
-            color: "#fff",
-            borderColor: "#fff",
-            fontSize: "1.5rem",      
-            fontWeight: "bold",      
-            minWidth: "60px",        
-            minHeight: "50px",       
-            textTransform: "none",   
-          }}
-        >
-          π
-        </Button>
+        <Stack direction="row" spacing={2} mb={2}>
+          <Button
+            variant="outlined"
+            onClick={() => insertSymbol("π")}
+            sx={{
+              color: "#fff",
+              borderColor: "#fff",
+              fontSize: "1.5rem",
+              fontWeight: "bold",
+              minWidth: "60px",
+              minHeight: "50px",
+              textTransform: "none",
+            }}
+          >
+            π
+          </Button>
 
-        <Button
-          variant="outlined"
-          onClick={() => insertSymbol("σ")}
-          sx={{
-            color: "#fff",
-            borderColor: "#fff",
-            fontSize: "1.5rem",
-            fontWeight: "bold",
-            minWidth: "60px",
-            minHeight: "50px",
-            textTransform: "none",
-          }}
-        >
-          σ
-        </Button>
-      </Stack>
+          <Button
+            variant="outlined"
+            onClick={() => insertSymbol("σ")}
+            sx={{
+              color: "#fff",
+              borderColor: "#fff",
+              fontSize: "1.5rem",
+              fontWeight: "bold",
+              minWidth: "60px",
+              minHeight: "50px",
+              textTransform: "none",
+            }}
+          >
+            σ
+          </Button>
+        </Stack>
 
         {/* Input Álgebra */}
         <Box mb={3}>

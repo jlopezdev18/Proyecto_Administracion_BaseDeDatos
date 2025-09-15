@@ -1,4 +1,4 @@
-export const algebraSql = (algebraQuery) => {
+export const sqlAlgebra = (algebraQuery) => {
   try {
     algebraQuery = algebraQuery.trim();
 
