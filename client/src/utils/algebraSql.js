@@ -23,7 +23,7 @@ export const algebraSql = (algebraQuery) => {
 
 
     return sql; 
-  } catch (error) {
+  } catch  {
     return "Error al convertir la expresión de álgebra relacional a SQL.";
   }
-};
+};  

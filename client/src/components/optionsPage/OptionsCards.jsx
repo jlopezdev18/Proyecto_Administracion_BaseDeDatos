@@ -25,6 +25,7 @@ const converters = [
     icon: "🗂️",
     color: "#e11d48",
     gradient: "linear-gradient(135deg, #e11d48 0%, #f43f5e 100%)",
+    navigateTo: "/options/er",
   },
   {
     id: "db-to-eer",
@@ -33,6 +34,7 @@ const converters = [
     icon: "📊",
     color: "#7c3aed",
     gradient: "linear-gradient(135deg, #7c3aed 0%, #8b5cf6 100%)",
+    navigateTo: "/options/eer",
   },
   {
     id: "db-to-relational",
@@ -42,6 +44,7 @@ const converters = [
     icon: "💾",
     color: "#059669",
     gradient: "linear-gradient(135deg, #059669 0%, #10b981 100%)",
+    navigateTo: "/options/relational",
   },
   {
     id: "sql-to-algebra",
@@ -50,6 +53,7 @@ const converters = [
     icon: "∑",
     color: "#dc2626",
     gradient: "linear-gradient(135deg, #dc2626 0%, #ef4444 100%)",
+    navigateTo: "/sql-to-algebra",
   },
   {
     id: "algebra-to-sql",
@@ -58,6 +62,7 @@ const converters = [
     icon: "💻",
     color: "#2563eb",
     gradient: "linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)",
+    navigateTo: "/algebra-to-sql",
   },
 ];
 
@@ -150,6 +155,9 @@ const OptionsCards = () => {
                       boxShadow: "0 20px 40px rgba(0, 0, 0, 0.3)",
                       border: "1px solid rgba(255, 255, 255, 0.2)",
                     },
+                  }}
+                  onClick={() => {
+                    navigate(converter.navigateTo);
                   }}
                 >
                   {/* Gradient Border Effect */}
