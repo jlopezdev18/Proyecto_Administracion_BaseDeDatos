@@ -16,9 +16,9 @@ export const algebraSql = (algebraQuery) => {
       fromTable = tableMatch ? tableMatch[1].trim() : fromTable;
     }
 
-    fromTable = fromTable.replace(/^\(+|\)+$/g, "").trim();
+    fromTable = fromTable.replace(/^\(+|\)+/g, "").trim();
 
-    return `SELECT ${selectFields} FROM ${fromTable}` + (whereCondition ? ` WHERE ${whereCondition}` : "") + ";";
+    return "SELECT " + selectFields + " FROM " + fromTable + (whereCondition ? " WHERE " + whereCondition : "") + ";";
 
   } catch {
     return "Error al convertir la expresión de álgebra relacional a SQL.";

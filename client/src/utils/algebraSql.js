@@ -15,11 +15,12 @@ export const algebraSql = (algebraQuery) => {
       fromTable = tableMatch ? tableMatch[1].trim() : "";
     }
 
-    fromTable = fromTable.replace(/^\(+|\)+$/g, "").trim();
-
-    let sql = `SELECT ${selectFields} FROM ${fromTable}`;
-    if (whereCondition) sql += ` WHERE ${whereCondition}`;
+    fromTable = fromTable.replace(/^\(+|\)+/g, "").trim();
+    
+    let sql = "SELECT " + selectFields + " FROM " + fromTable;
+    if (whereCondition) sql += " WHERE " + whereCondition;
     sql += ";";
+
 
     return sql; 
   } catch (error) {
