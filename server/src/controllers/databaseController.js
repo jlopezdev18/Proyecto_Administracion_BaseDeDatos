@@ -1,4 +1,5 @@
 const { poolPromise } = require('../config/database');
+const { get } = require('../routes/database');
 
 async function listDatabases(req, res) {
     try {
@@ -172,10 +173,46 @@ async function getDatabaseRelations(req, res) {
     }
 }
 
+async function getGeneralizations(req, res) {
+    const dbName = req.params.dbName;
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request().query(`
+            USE [${dbName}];
+            SELECT 
+                fk.name AS fk_name,
+                OBJECT_NAME(fk.parent_object_id) AS child_table,
+                OBJECT_NAME(fk.referenced_object_id) AS parent_table
+            FROM sys.foreign_keys fk
+        `);
+
+        const generalizations = {};
+        result.recordset.forEach(row => {
+            if (!generalizations[row.parent_table]) {
+                generalizations[row.parent_table] = [];
+            }
+            generalizations[row.parent_table].push(row.child_table);
+        });
+
+        const output = Object.entries(generalizations)
+            .filter(([parent, children]) => children.length > 1)
+            .map(([parent, children]) => ({
+                supertype: parent,
+                subtypes: children
+            }));
+
+        res.json({ success: true, data: output });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+}
+            
+
 module.exports = {
     listDatabases,
     getTableNames,
     getColumnsNames,
     getTablesMetadataForDatabase,
     getDatabaseRelations,
+    getGeneralizations,
 };

@@ -5,7 +5,8 @@ const {
 	getTablesMetadataForDatabase,
 	getDatabaseRelations,
 	getTableNames,
-	getColumnsNames
+	getColumnsNames,
+	getGeneralizations
 } = require('../controllers/databaseController')
 
 
@@ -14,6 +15,7 @@ router.get('/databases/:dbName/tables/names', getTableNames)
 router.get('/databases/:dbName/columns', getColumnsNames)
 router.get('/databases/:dbName/tables', getTablesMetadataForDatabase)
 router.get('/databases/:dbName/relations', getDatabaseRelations)
+router.get('/databases/:dbName/generalizations', getGeneralizations)
 
 
 module.exports = router
