@@ -1,72 +1,96 @@
 import { useEffect, useState } from "react";
 
-function App() {
-  const [databases, setDatabases] = useState([]);
-  const [selectedDb, setSelectedDb] = useState("");
+function Relacional() {
   const [tables, setTables] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Cargar bases de datos
   useEffect(() => {
-    fetch("http://localhost:4000/list-databases")
+    fetch("http://localhost:3000/my-er-model")
       .then((res) => res.json())
       .then((data) => {
-        if (data.success) setDatabases(data.data);
+        if (data.success) {
+          setTables(data.data);
+        } else {
+          setError(data.error);
+        }
+        setLoading(false);
       })
-      .catch((err) => console.error("Error cargando bases:", err));
+      .catch((err) => {
+        setError(err.message);
+        setLoading(false);
+      });
   }, []);
 
-  // Cargar tablas de la DB seleccionada
-  const loadTables = (db) => {
-    setSelectedDb(db);
-    setLoading(true);
-    fetch(`http://localhost:4000/tables/${db}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) setTables(data.data);
-      })
-      .catch((err) => console.error("Error cargando tablas:", err))
-      .finally(() => setLoading(false));
-  };
+  if (loading) return <p>Cargando modelo ER...</p>;
+  if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold">Explorador ER 🚀</h1>
+    <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
+      <h1 style={{ textAlign: "center" }}>Modelo Relacional</h1>
 
-      <h2 className="mt-4 font-semibold">Bases de datos:</h2>
-      <ul className="list-disc pl-6">
-        {databases.map((db) => (
-          <li key={db}>
-            <button
-              className="text-blue-600 underline"
-              onClick={() => loadTables(db)}
+      {tables.length === 0 ? (
+        <p>No se encontraron tablas.</p>
+      ) : (
+        tables.map((table) => (
+          <div
+            key={table.tableName}
+            style={{
+              marginBottom: "30px",
+              border: "1px solid #ccc",
+              borderRadius: "8px",
+              padding: "15px",
+              background: "#f9f9f9",
+            }}
+          >
+            <h2 style={{ marginBottom: "10px" }}>{table.tableName}</h2>
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                marginBottom: "10px",
+              }}
             >
-              {db}
-            </button>
-          </li>
-        ))}
-      </ul>
-
-      {selectedDb && (
-        <div className="mt-6">
-          <h2 className="font-semibold">
-            Tablas en <span className="text-green-600">{selectedDb}</span>:
-          </h2>
-          {loading ? (
-            <p>Cargando tablas...</p>
-          ) : (
-            <ul className="list-square pl-6">
-              {tables.map((t) => (
-                <li key={t.name}>
-                  {t.schema}.{t.name}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+              <thead>
+                <tr style={{ background: "#ddd" }}>
+                  <th style={{ border: "1px solid #ccc", padding: "8px" }}>Columna</th>
+                  <th style={{ border: "1px solid #ccc", padding: "8px" }}>Tipo</th>
+                  <th style={{ border: "1px solid #ccc", padding: "8px" }}>¿Nulo?</th>
+                  <th style={{ border: "1px solid #ccc", padding: "8px" }}>PK</th>
+                </tr>
+              </thead>
+              <tbody>
+                {table.columns.map((col) => (
+                  <tr key={col.columnName}>
+                    <td style={{ border: "1px solid #ccc", padding: "8px" }}>
+                      {col.columnName}
+                    </td>
+                    <td style={{ border: "1px solid #ccc", padding: "8px" }}>
+                      {col.dataType}
+                    </td>
+                    <td style={{ border: "1px solid #ccc", padding: "8px" }}>
+                      {col.isNullable}
+                    </td>
+                    <td
+                      style={{
+                        border: "1px solid #ccc",
+                        padding: "8px",
+                        textAlign: "center",
+                        fontWeight: "bold",
+                        color: col.isPrimaryKey ? "green" : "black",
+                      }}
+                    >
+                      {col.isPrimaryKey ? "✔" : ""}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ))
       )}
     </div>
   );
 }
 
-export default App;
+export default Relacional;
