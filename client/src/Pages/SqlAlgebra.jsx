@@ -14,7 +14,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useNavigate } from "react-router-dom";
 import { sqlAlgebra } from "../utils/sqlAlgebra";
 
-const SqlAlgebra = () => {
+const SqlToAlgebra = () => {
   const navigate = useNavigate();
   const [sqlQuery, setSqlQuery] = useState("");
   const [algebraResult, setAlgebraResult] = useState("");
@@ -32,7 +32,7 @@ const SqlAlgebra = () => {
           "linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)",
       }}
     >
-      {/* Header */}
+      {/* */}
       <AppBar
         position="static"
         sx={{
@@ -61,7 +61,7 @@ const SqlAlgebra = () => {
             component="h2"
             sx={{ flexGrow: 1, fontWeight: 600 }}
           >
-            Conversor SQL → Álgebra Relacional
+            Conversor SQL → Álgebra
           </Typography>
         </Toolbar>
       </AppBar>
@@ -79,12 +79,12 @@ const SqlAlgebra = () => {
             variant="outlined"
             value={sqlQuery}
             onChange={(e) => setSqlQuery(e.target.value)}
-            placeholder="Ej: SELECT nombre, edad FROM empleados WHERE edad > 30"
+            placeholder="Ej: SELECT nombre, edad FROM Empleados WHERE edad > 30"
             sx={{ backgroundColor: "#fff", borderRadius: 2 }}
           />
         </Box>
 
-        {/* Botón Convertir */}
+        {/* Botón convertir */}
         <Button
           variant="contained"
           fullWidth
@@ -94,7 +94,7 @@ const SqlAlgebra = () => {
             mb: 4,
             fontWeight: 600,
             fontSize: "1rem",
-            background: "linear-gradient(135deg, #dc2626 0%, #ef4444 100%)",
+            background: "linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)",
           }}
         >
           Convertir
@@ -109,6 +109,7 @@ const SqlAlgebra = () => {
               p: 3,
               color: "#fff",
               fontFamily: "monospace",
+              whiteSpace: "pre-wrap",
             }}
           >
             <Typography variant="subtitle1" sx={{ mb: 1 }}>
@@ -122,4 +123,4 @@ const SqlAlgebra = () => {
   );
 };
 
-export default SqlAlgebra;
+export default SqlToAlgebra;

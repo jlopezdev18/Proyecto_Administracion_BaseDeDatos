@@ -73,38 +73,25 @@ const AlgebraToSql = () => {
 
       <Container maxWidth="md" sx={{ py: 3 }}>
         {/* Botones de los símbolos */}
-        <Stack direction="row" spacing={2} mb={2}>
-          <Button
-            variant="outlined"
-            onClick={() => insertSymbol("π")}
-            sx={{
-              color: "#fff",
-              borderColor: "#fff",
-              fontSize: "1.5rem",
-              fontWeight: "bold",
-              minWidth: "60px",
-              minHeight: "50px",
-              textTransform: "none",
-            }}
-          >
-            π
-          </Button>
-
-          <Button
-            variant="outlined"
-            onClick={() => insertSymbol("σ")}
-            sx={{
-              color: "#fff",
-              borderColor: "#fff",
-              fontSize: "1.5rem",
-              fontWeight: "bold",
-              minWidth: "60px",
-              minHeight: "50px",
-              textTransform: "none",
-            }}
-          >
-            σ
-          </Button>
+        <Stack direction="row" spacing={2} mb={2} flexWrap="wrap">
+          {["π", "σ", "×", "∪", "∩", "-", "ρ"].map((sym) => (
+            <Button
+              key={sym}
+              variant="outlined"
+              onClick={() => insertSymbol(sym)}
+              sx={{
+                color: "#fff",
+                borderColor: "#fff",
+                fontSize: "1.5rem",
+                fontWeight: "bold",
+                minWidth: "60px",
+                minHeight: "50px",
+                textTransform: "none",
+              }}
+            >
+              {sym}
+            </Button>
+          ))}
         </Stack>
 
         {/* Input Álgebra */}
@@ -119,7 +106,7 @@ const AlgebraToSql = () => {
             variant="outlined"
             value={algebraQuery}
             onChange={(e) => setAlgebraQuery(e.target.value)}
-            placeholder="Ej: π nombre, edad(σ(edad>30)(empleados))"
+            placeholder="Ej: π nombre, edad(σ edad>30(Empleados))"
             sx={{ backgroundColor: "#fff", borderRadius: 2 }}
           />
         </Box>
@@ -149,6 +136,7 @@ const AlgebraToSql = () => {
               p: 3,
               color: "#fff",
               fontFamily: "monospace",
+              whiteSpace: "pre-wrap",
             }}
           >
             <Typography variant="subtitle1" sx={{ mb: 1 }}>
