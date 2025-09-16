@@ -23,6 +23,9 @@ import {
   Relationship,
   Key,
   MultivaluedAttribute,
+  GeneralizationTriangle,
+  GeneralizationCircle,
+  ExclusivityArc,
 } from "../customShapes/customShapes";
 
 const EERPage = () => {
@@ -35,6 +38,7 @@ const EERPage = () => {
   const [diagramLoading, setDiagramLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [generalizations, setGeneralizations] = useState([]);
 
   // Obtener bases de datos
   useEffect(() => {
@@ -118,6 +122,27 @@ const EERPage = () => {
     fetchTableAndColumnData();
   }, [selectedDb]);
 
+  // Cargar generalizaciones
+  useEffect(() => {
+    if (!selectedDb) return;
+    const fetchGeneralizations = async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:3000/api/database/databases/${selectedDb}/generalizations`
+        );
+        const result = await response.json();
+        if (result.success) {
+          setGeneralizations(result.data);
+        } else {
+          setGeneralizations([]);
+        }
+      } catch (err) {
+        setGeneralizations([]);
+      }
+    };
+    fetchGeneralizations();
+  }, [selectedDb]);
+
   // Dibujar diagrama
   useEffect(() => {
     if (!selectedDb || tableNames.length === 0 || columnNames.length === 0)
@@ -149,42 +174,65 @@ const EERPage = () => {
       tableColumns[col.table].push(col);
     });
 
-    const tablePositions = {};
-    const tableElements = {};
     let currentX = 100,
       currentY = 100;
 
-    tableNames.forEach((table, index) => {
-      const tableName = table.name;
+    // Separar entidades principales y subtipos
+    const mainEntities = tableNames.filter(t => !generalizations.some(g => g.subtypes.includes(t.name)));
+    const subEntities = tableNames.filter(t => generalizations.some(g => g.subtypes.includes(t.name)));
 
-      const tableRect = new customShapes.erd.Entity();
-      tableRect.position(currentX, currentY);
+    const tablePositions = {};
+    const tableElements = {};
+
+    // Fila superior: entidades principales
+    const entitySpacingX = 350;
+    const entityStartX = 200;
+    const entityY = 120;
+
+    mainEntities.forEach((table, idx) => {
+      const x = entityStartX + idx * entitySpacingX;
+      const y = entityY;
+      const tableRect = new Entity();
+      tableRect.position(x, y);
       tableRect.resize(150, 60);
       tableRect.addTo(graph);
-      tableRect.attr("text", { text: tableName });
+      tableRect.attr("text", { text: table.name });
+      tablePositions[table.name] = { x, y };
+      tableElements[table.name] = tableRect;
 
-      tablePositions[tableName] = { x: currentX, y: currentY };
-      tableElements[tableName] = tableRect;
-
-      const columns = tableColumns[tableName] || [];
-      const tableCenter = { x: currentX + 75, y: currentY + 30 };
-
+      // Atributos en círculo pequeño alrededor de la entidad
+      const columns = tableColumns[table.name] || [];
+      const center = { x: x + 75, y: y + 30 };
       columns.forEach((column, colIndex) => {
         const columnName = column.column;
         const isPrimaryKey = column.isPrimaryKey || false;
 
-        const angle = (colIndex / columns.length) * 2 * Math.PI;
-        const distance = 150;
-        const columnX = tableCenter.x + distance * Math.cos(angle) - 50;
-        const columnY = tableCenter.y + distance * Math.sin(angle) - 20;
+        let radius = 90;
+        let angle;
+        if (table.name === "Arquitecto") {
+          angle = Math.PI + (Math.PI / (columns.length + 1)) * (colIndex + 1);
+          radius = 120;
+        } else if (table.name === "Administrativo") {
+          angle = 0 + (Math.PI / (columns.length + 1)) * (colIndex + 1);
+          radius = 120;
+        } else if (table.name === "Empleado") {
+          angle = (2 * Math.PI * colIndex) / columns.length;
+          radius = 150;
+        } else {
+          angle = (2 * Math.PI * colIndex) / columns.length;
+          radius = 90;
+        }
+
+        const attrX = center.x + radius * Math.cos(angle) - 60;
+        const attrY = center.y + radius * Math.sin(angle) - 20;
 
         const columnShape = column.isMultivalued
-          ? new customShapes.erd.MultivaluedAttribute()
+          ? new MultivaluedAttribute()
           : isPrimaryKey
-            ? new customShapes.erd.Key()
-            : new customShapes.erd.Attribute();
+            ? new Key()
+            : new Attribute();
 
-        columnShape.position(columnX, columnY);
+        columnShape.position(attrX, attrY);
         columnShape.resize(120, 40);
         columnShape.addTo(graph);
         columnShape.attr("text", { text: columnName });
@@ -197,89 +245,132 @@ const EERPage = () => {
         });
         graph.addCell(link);
       });
-
-      currentX += 650;
-      if ((index + 1) % 2 === 0) {
-        currentX = 100;
-        currentY += 450;
-      }
     });
 
-    relations.forEach((relation) => {
-      const table1Name = relation.referencing_table;
-      const table2Name = relation.referenced_table;
-      const table1Pos = tablePositions[table1Name];
-      const table2Pos = tablePositions[table2Name];
-      const table1Element = tableElements[table1Name];
-      const table2Element = tableElements[table2Name];
+    
+    const subtypeY = 400;
+    subEntities.forEach((table, idx) => {
+      const x = entityStartX + idx * entitySpacingX;
+      const y = subtypeY;
+      const tableRect = new Entity();
+      tableRect.position(x, y);
+      tableRect.resize(150, 60);
+      tableRect.addTo(graph);
+      tableRect.attr("text", { text: table.name });
+      tablePositions[table.name] = { x, y };
+      tableElements[table.name] = tableRect;
 
-      if (table1Pos && table2Pos && table1Element && table2Element) {
-        const table1Center = { x: table1Pos.x + 75, y: table1Pos.y + 30 };
-        const table2Center = { x: table2Pos.x + 75, y: table2Pos.y + 30 };
-
-        const relationShapeX = (table1Center.x + table2Center.x) / 2 - 40;
-        const relationShapeY = (table1Center.y + table2Center.y) / 2 - 20;
-
-        const diamond = new customShapes.erd.Relationship();
-        diamond.position(relationShapeX, relationShapeY);
-        diamond.resize(120, 90);
-        diamond.addTo(graph);
-        diamond.attr("text", { text: "Relación" });
-
-        const link1 = new shapes.standard.Link({
-          source: { id: diamond.id },
-          target: { id: table1Element.id },
-          attrs: { line: { stroke: "#7c3aed", strokeWidth: 2 } },
+      
+      const columns = tableColumns[table.name] || [];
+      const center = { x: x + 75, y: y + 30 };
+      columns.forEach((column, colIndex) => {
+        const angle = (2 * Math.PI * colIndex) / columns.length;
+        const radius = 90;
+        const attrX = center.x + radius * Math.cos(angle) - 500;
+        const attrY = center.y + radius * Math.sin(angle) + 200;
+        const columnShape = column.isMultivalued
+          ? new MultivaluedAttribute()
+          : column.isPrimaryKey
+            ? new Key()
+            : new Attribute();
+        columnShape.position(attrX, attrY);
+        columnShape.resize(120, 40);
+        columnShape.addTo(graph);
+        columnShape.attr("text", { text: column.column });
+        const link = new shapes.standard.Link({
+          source: { id: tableRect.id },
+          target: { id: columnShape.id },
+          attrs: { line: { stroke: "#7c3aed", strokeWidth: 1 } },
           connector: { name: "straight" },
-          labels: [
-            {
-              position: 0.2,
-              attrs: {
-                rect: {
-                  fill: "#45433bff",
-                  stroke: "#7c3aed",
-                  rx: 4,
-                  ry: 4,
-                },
-                text: {
-                  text: "(0,1)",
-                  fill: "#ffffffff",
-                  fontWeight: "bold",
-                },
-              },
-            },
-          ],
         });
-
-        const link2 = new shapes.standard.Link({
-          source: { id: diamond.id },
-          target: { id: table2Element.id },
-          attrs: { line: { stroke: "#7c3aed", strokeWidth: 2 } },
-          connector: { name: "straight" },
-          labels: [
-            {
-              position: 0.8,
-              attrs: {
-                rect: {
-                  fill: "#45433bff",
-                  stroke: "#7c3aed",
-                  rx: 4,
-                  ry: 4,
-                },
-                text: {
-                  text: "(1,N)",
-                  fill: "#ffffffff",
-                  fontWeight: "bold",
-                },
-              },
-            },
-          ],
-        });
-
-        graph.addCell(link1);
-        graph.addCell(link2);
-      }
+        graph.addCell(link);
+      });
     });
+
+    try {
+      if (generalizations && Array.isArray(generalizations)) {
+        generalizations.forEach((gen) => {
+          const superEntity = tableElements[gen.supertype];
+          const superPos = tablePositions[gen.supertype];
+          if (!superEntity || !superPos) {
+            console.warn("Entidad o posición no encontrada para:", gen.supertype);
+            return;
+          }
+
+          
+          const baseX = superPos.x + 75; 
+          const superY = superPos.y;
+          const circleY = superY + 120;      // Más espacio debajo del supertype
+          const triangleY = circleY + 60;    // Más espacio debajo del círculo
+          const subtypesY = triangleY + 80;  // Más espacio debajo del triángulo
+
+          // Círculo debajo del supertype
+          const circle = new GeneralizationCircle();
+          circle.position(baseX - 15, circleY);
+          circle.resize(30, 30);
+          circle.addTo(graph);
+
+          // Triángulo debajo del círculo
+          const triangle = new GeneralizationTriangle();
+          triangle.position(baseX - 30, triangleY);
+          triangle.resize(60, 40);
+          triangle.addTo(graph);
+
+          if (gen.exclusive) { 
+            const arc = new ExclusivityArc();
+            arc.position(baseX - 30, circleY - 35);
+            arc.resize(60, 30);  
+            arc.addTo(graph);
+          }
+
+          const linkSuper = new shapes.standard.Link({
+            source: { id: superEntity.id },
+            target: { id: circle.id },
+            attrs: { line: { stroke: "#6366f1", strokeWidth: 2 } },
+            connector: { name: "straight" },
+          });
+          graph.addCell(linkSuper);
+
+          const linkCircleTriangle = new shapes.standard.Link({
+            source: { id: circle.id },
+            target: { id: triangle.id },
+            attrs: { line: { stroke: "#6366f1", strokeWidth: 2 } },
+            connector: { name: "straight" },
+          });
+          graph.addCell(linkCircleTriangle);
+
+          superEntity.position(baseX - 75, superY);
+          superEntity.attr("text/text", gen.supertype);
+
+          if (Array.isArray(gen.subtypes)) {
+            const total = gen.subtypes.length;
+            const spacing = 220; 
+            const startX = baseX - ((total - 1) * spacing) / 2;
+            gen.subtypes.forEach((subtype, idx) => {
+              const subEntity = tableElements[subtype];
+              if (!subEntity) {
+                console.warn("Subentidad no encontrada para:", subtype);
+                return;
+              }
+              
+              subEntity.position(startX + idx * spacing - 75, subtypesY);
+              subEntity.attr("text/text", subtype);
+
+              const linkSub = new shapes.standard.Link({
+                source: { id: triangle.id },
+                target: { id: subEntity.id },
+                attrs: { line: { stroke: "#6366f1", strokeWidth: 2 } },
+                connector: { name: "straight" },
+              });
+              graph.addCell(linkSub);
+            });
+          }
+        });
+      }
+    } catch (err) {
+      console.error("Error al renderizar generalizaciones:", err);
+    }
+
 
     paper.transformToFitContent({ padding: 20, maxScale: 1, minScale: 0.2 });
   }, [selectedDb, tableNames, columnNames, relations]);

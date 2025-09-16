@@ -83,6 +83,7 @@ export const Key = Attribute.define('erd.Key', {
     }
 });
 
+// Atributo multivaluado
 export const MultivaluedAttribute = dia.Element.define('erd.MultivaluedAttribute', {
     size: { width: 110, height: 55 },
     attrs: {
@@ -109,5 +110,76 @@ export const MultivaluedAttribute = dia.Element.define('erd.MultivaluedAttribute
     }
 }, {
     markup: '<g class="rotatable"><g class="scalable"><ellipse class="outer"/><ellipse class="inner"/></g><text/></g>',
+    useCSSSelectors: true
+});
+
+// Triángulo para generalización
+export const GeneralizationTriangle = dia.Element.define('erd.GeneralizationTriangle', {
+    size: { width: 60, height: 40 },
+    attrs: {
+        polygon: {
+            points: '0,0 60,0 30,40',
+            fill: '#4b4949ff',
+            stroke: '#6366f1',
+            'stroke-width': 2,
+        },
+        text: {
+            text: '',
+            'font-family': 'Arial',
+            'font-size': 14,
+            fill: '#6366f1',
+            'ref-x': .5,
+            'ref-y': .5,
+            'y-alignment': 'middle',
+            'text-anchor': 'middle'
+        }
+    }
+}, {
+    markup: '<g class="rotatable"><g class="scalable"><polygon/></g><text/></g>',
+    useCSSSelectors: true
+});
+
+// Círculo para generalización
+export const GeneralizationCircle = dia.Element.define('erd.GeneralizationCircle', {
+    size: { width: 30, height: 30 },
+    attrs: {
+        circle: {
+            cx: 15,
+            cy: 15,
+            r: 15,
+            fill: '#4b4949ff',
+            stroke: '#6366f1',
+            'stroke-width': 2,
+        },
+        text: {
+            text: '',
+            'font-family': 'Arial',
+            'font-size': 14,
+            fill: '#6366f1',
+            'ref-x': .5,
+            'ref-y': .5,
+            'y-alignment': 'middle',
+            'text-anchor': 'middle'
+        }
+    }
+}, {
+    markup: '<g class="rotatable"><g class="scalable"><circle/></g><text/></g>',
+    useCSSSelectors: true
+});
+
+export const ExclusivityArc = dia.Element.define('erd.ExclusivityArc', {
+    size: { width: 60, height: 30 },
+    attrs: {
+        path: {
+            d: 'M 0 15 A 30 15 0 0 1 60 15',
+            stroke: '#6366f1',
+            'stroke-width': 3,
+            fill: 'none',
+            refX: 0,
+            refY: 0
+        }
+    }
+}, {
+    markup: '<g class="rotatable"><g class="scalable"><path/></g></g>',
     useCSSSelectors: true
 });

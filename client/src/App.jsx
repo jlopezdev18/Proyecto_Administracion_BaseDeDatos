@@ -17,6 +17,7 @@ function App() {
         <Route path="/options/eer" element={<EERPage/>} />
         <Route path="/sql-to-algebra" element={<SqlAlgebra />} />
         <Route path="/algebra-to-sql" element={<AlgebraSql />} />
+        <Route path="/my-er" element={<Relacional />} />
       </Routes>
     </BrowserRouter>
   );
