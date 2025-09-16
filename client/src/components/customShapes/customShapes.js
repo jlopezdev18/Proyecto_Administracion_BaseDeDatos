@@ -1,4 +1,4 @@
-import { dia } from "@joint/core";
+import { dia, shapes } from "@joint/core";
 
 
 export const Entity = dia.Element.define('erd.Entity', {
@@ -82,4 +82,32 @@ export const Key = Attribute.define('erd.Key', {
         text: { text: 'key', 'font-weight': '800', 'text-decoration': 'underline' }
     }
 });
- 
+
+export const MultivaluedAttribute = dia.Element.define('erd.MultivaluedAttribute', {
+    size: { width: 110, height: 55 },
+    attrs: {
+        'ellipse': {
+            transform: 'translate(55, 27.5)'
+        },
+        '.outer': {
+            stroke: '#059669', 'stroke-width': 3,
+            cx: 0, cy: 0, rx: 55, ry: 27.5,
+            fill: '#fff'
+        },
+        '.inner': {
+            stroke: '#059669', 'stroke-width': 2,
+            cx: 0, cy: 0, rx: 45, ry: 20,
+            fill: '#fff'
+        },
+        text: {
+            'font-family': 'Arial', 'font-size': 14,
+            'ref-x': .5, 'ref-y': .5,
+            'y-alignment': 'middle', 'text-anchor': 'middle',
+            fill: '#059669',
+            fontWeight: 'bold'
+        }
+    }
+}, {
+    markup: '<g class="rotatable"><g class="scalable"><ellipse class="outer"/><ellipse class="inner"/></g><text/></g>',
+    useCSSSelectors: true
+});
