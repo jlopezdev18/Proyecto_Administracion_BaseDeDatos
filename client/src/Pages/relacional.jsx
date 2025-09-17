@@ -1,96 +1,338 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import {
+  Box,
+  Typography,
+  Container,
+  IconButton,
+  AppBar,
+  Toolbar,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Paper,
+  CircularProgress,
+} from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import HomeIcon from "@mui/icons-material/Home";
+import { dia, shapes } from "@joint/core";
+import { useNavigate } from "react-router-dom";
 
-function Relacional() {
+const RelationalModelPage = () => {
+  const navigate = useNavigate();
+  const [databases, setDatabases] = useState([]);
+  const [selectedDb, setSelectedDb] = useState("");
   const [tables, setTables] = useState([]);
+  const [relations, setRelations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [diagramLoading, setDiagramLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost:3000/my-er-model")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success) {
-          setTables(data.data);
-        } else {
-          setError(data.error);
+    const fetchDatabases = async () => {
+      try {
+        const response = await fetch(
+          "http://localhost:3000/api/database/databases"
+        );
+        const result = await response.json();
+        if (result.success) {
+          setDatabases(result.data || []);
+          if (result.data.length > 0) {
+            setSelectedDb(result.data[0]);
+          }
         }
+      } catch (err) {
+        setError("Error al obtener bases de datos");
+        console.error(err);
+      } finally {
         setLoading(false);
-      })
-      .catch((err) => {
-        setError(err.message);
-        setLoading(false);
-      });
+      }
+    };
+
+    fetchDatabases();
   }, []);
 
-  if (loading) return <p>Cargando modelo ER...</p>;
-  if (error) return <p style={{ color: "red" }}>Error: {error}</p>;
+  useEffect(() => {
+    if (!selectedDb) return;
+
+    const fetchSchemaData = async () => {
+      setDiagramLoading(true);
+      try {
+        const tablesResponse = await fetch(
+          `http://localhost:3000/api/database/databases/${selectedDb}/tables`
+        );
+        const tablesResult = await tablesResponse.json();
+
+        const relationsResponse = await fetch(
+          `http://localhost:3000/api/database/databases/${selectedDb}/relations`
+        );
+        const relationsResult = await relationsResponse.json();
+
+        if (tablesResult.success && relationsResult.success) {
+          setTables(tablesResult.data);
+          setRelations(relationsResult.data);
+        } else {
+          setError("No se pudieron cargar las tablas o relaciones");
+        }
+      } catch (err) {
+        setError("Error cargando esquema de la base de datos");
+        console.error(err);
+      } finally {
+        setDiagramLoading(false);
+      }
+    };
+
+    fetchSchemaData();
+  }, [selectedDb]);
+
+  useEffect(() => {
+    if (!selectedDb || tables.length === 0) return;
+
+    const container = document.getElementById("diagram-container");
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    const graph = new dia.Graph({}, { cellNamespace: shapes });
+    const paper = new dia.Paper({
+      el: container,
+      model: graph,
+      width: "100%",
+      height: "100%",
+      gridSize: 10,
+      drawGrid: true,
+      background: { color: "#1e293b" },
+      cellViewNamespace: shapes,
+    });
+
+    const tableElements = {};
+    let x = 100,
+      y = 100;
+
+    tables.forEach((table, index) => {
+      const rect = new shapes.standard.HeaderedRectangle();
+      rect.position(x, y);
+      rect.resize(260, 90 + table.columns.length * 22);
+      rect.attr({
+        body: {
+          fill: "#f9fafb",
+          stroke: "#374151",
+          strokeWidth: 1.5,
+          rx: 12,
+          ry: 12,
+        },
+        header: {
+          fill: "#211e77ff",
+        },
+        headerText: {
+          text: table.tableName,
+          fill: "#ffffff",
+          fontWeight: "bold",
+          fontSize: 15,
+          fontFamily: "Segoe UI, sans-serif",
+        },
+        bodyText: {
+          text: table.columns
+            .map(
+              (col) =>
+                `${col.isPrimaryKey
+                  ? "🔑 "
+                  : col.isForeignKey
+                    ? "🔗 "
+                    : "▫️ "
+                } ${col.columnName} : ${col.dataType}`
+            )
+            .join("\n"),
+          fontSize: 16,
+          fill: "#111827",
+          textAnchor: "left",
+          fontWeight: "bold",
+          fontFamily: "Consolas, monospace",
+          refX: -120,
+          refY: 0,
+        },
+      });
+
+      rect.addTo(graph);
+
+      tableElements[table.tableName] = rect;
+
+      x += 300;
+      if ((index + 1) % 3 === 0) {
+        x = 100;
+        y += 320;
+      }
+    });
+
+
+    // Relaciones (FKs)
+    relations.forEach((rel) => {
+      const fromTable = tableElements[rel.referencing_table];
+      const toTable = tableElements[rel.referenced_table];
+
+      if (fromTable && toTable) {
+        const link = new shapes.standard.Link();
+        link.source(fromTable);
+        link.target(toTable);
+        link.attr({
+          line: {
+            stroke: "#f59e0b",
+            strokeWidth: 2,
+            targetMarker: {
+              type: "path",
+              d: "M 10 -5 0 0 10 5 Z",
+              fill: "#f59e0b",
+            },
+          },
+        });
+        graph.addCell(link);
+      }
+    });
+
+    paper.transformToFitContent({ padding: 30 });
+  }, [selectedDb, tables, relations]);
 
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
-      <h1 style={{ textAlign: "center" }}>Modelo Relacional</h1>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        background:
+          "linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)",
+      }}
+    >
+      <AppBar
+        position="static"
+        sx={{ background: "rgba(30, 41, 59, 0.95)", backdropFilter: "blur(10px)" }}
+      >
+        <Toolbar>
+          <IconButton color="inherit" onClick={() => navigate("/")} sx={{ mr: 1 }}>
+            <HomeIcon />
+          </IconButton>
+          <IconButton color="inherit" onClick={() => navigate("/options")} sx={{ mr: 2 }}>
+            <ArrowBackIcon />
+          </IconButton>
+          <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>
+            Modelo Relacional
+          </Typography>
+        </Toolbar>
+      </AppBar>
 
-      {tables.length === 0 ? (
-        <p>No se encontraron tablas.</p>
-      ) : (
-        tables.map((table) => (
-          <div
-            key={table.tableName}
-            style={{
-              marginBottom: "30px",
-              border: "1px solid #ccc",
-              borderRadius: "8px",
-              padding: "15px",
-              background: "#f9f9f9",
+      <Container maxWidth="xl" sx={{ py: 3, height: "calc(100vh - 64px)" }}>
+        <Box mb={3}>
+          <Paper
+            sx={{
+              p: 3,
+              background: "rgba(255, 255, 255, 0.05)",
+              backdropFilter: "blur(10px)",
+              border: "1px solid rgba(255, 255, 255, 0.1)",
+              borderRadius: 2,
             }}
           >
-            <h2 style={{ marginBottom: "10px" }}>{table.tableName}</h2>
-            <table
-              style={{
-                width: "100%",
-                borderCollapse: "collapse",
-                marginBottom: "10px",
-              }}
-            >
-              <thead>
-                <tr style={{ background: "#ddd" }}>
-                  <th style={{ border: "1px solid #ccc", padding: "8px" }}>Columna</th>
-                  <th style={{ border: "1px solid #ccc", padding: "8px" }}>Tipo</th>
-                  <th style={{ border: "1px solid #ccc", padding: "8px" }}>¿Nulo?</th>
-                  <th style={{ border: "1px solid #ccc", padding: "8px" }}>PK</th>
-                </tr>
-              </thead>
-              <tbody>
-                {table.columns.map((col) => (
-                  <tr key={col.columnName}>
-                    <td style={{ border: "1px solid #ccc", padding: "8px" }}>
-                      {col.columnName}
-                    </td>
-                    <td style={{ border: "1px solid #ccc", padding: "8px" }}>
-                      {col.dataType}
-                    </td>
-                    <td style={{ border: "1px solid #ccc", padding: "8px" }}>
-                      {col.isNullable}
-                    </td>
-                    <td
-                      style={{
-                        border: "1px solid #ccc",
-                        padding: "8px",
-                        textAlign: "center",
-                        fontWeight: "bold",
-                        color: col.isPrimaryKey ? "green" : "black",
-                      }}
-                    >
-                      {col.isPrimaryKey ? "✔" : ""}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ))
-      )}
-    </div>
-  );
-}
+            <Box display="flex" alignItems="center" gap={3} flexWrap="wrap">
+              <Typography variant="h6" sx={{ color: "#fff", fontWeight: 600 }}>
+                Seleccionar Base de Datos:
+              </Typography>
+              {loading ? (
+                <CircularProgress size={24} sx={{ color: "#3b82f6" }} />
+              ) : error ? (
+                <Typography sx={{ color: "#ef4444" }}>{error}</Typography>
+              ) : (
+                <FormControl sx={{ minWidth: 200 }}>
+                  <InputLabel
+                    sx={{
+                      color: "rgba(255, 255, 255, 0.7)",
+                      "&.Mui-focused": { color: "#3b82f6" },
+                    }}
+                  >
+                    Base de Datos
+                  </InputLabel>
+                  <Select
+                    value={selectedDb}
+                    onChange={(e) => setSelectedDb(e.target.value)}
+                    sx={{
+                      color: "#fff",
+                      ".MuiOutlinedInput-notchedOutline": {
+                        borderColor: "rgba(255, 255, 255, 0.3)",
+                      },
+                      "&:hover .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "rgba(255, 255, 255, 0.5)",
+                      },
+                      "&.Mui-focused .MuiOutlinedInput-notchedOutline": {
+                        borderColor: "#3b82f6",
+                      },
+                      ".MuiSvgIcon-root": {
+                        color: "rgba(255, 255, 255, 0.7)",
+                      },
+                    }}
+                    MenuProps={{
+                      PaperProps: {
+                        sx: {
+                          background: "rgba(30, 41, 59, 0.95)",
+                          backdropFilter: "blur(10px)",
+                          border: "1px solid rgba(255, 255, 255, 0.1)",
+                        },
+                      },
+                    }}
+                  >
+                    {databases.map((db) => (
+                      <MenuItem
+                        key={db}
+                        value={db}
+                        sx={{
+                          color: "#fff",
+                          "&:hover": { background: "rgba(59, 130, 246, 0.1)" },
+                          "&.Mui-selected": {
+                            background: "rgba(59, 130, 246, 0.2)",
+                            "&:hover": { background: "rgba(59, 130, 246, 0.3)" },
+                          },
+                        }}
+                      >
+                        {db}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
+            </Box>
+          </Paper>
+        </Box>
 
-export default Relacional;
+        <Paper
+          sx={{
+            height: "calc(100% - 120px)",
+            background: "rgba(255, 255, 255, 0.03)",
+            backdropFilter: "blur(10px)",
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+            borderRadius: 2,
+            p: 2,
+          }}
+        >
+          <Box
+            id="diagram-container"
+            sx={{
+              width: "100%",
+              height: "100%",
+              borderRadius: 1,
+              border: "2px solid rgba(255, 255, 255, 0.1)",
+              position: "relative",
+              display: diagramLoading ? "flex" : "block",
+              alignItems: diagramLoading ? "center" : "initial",
+              justifyContent: diagramLoading ? "center" : "initial",
+            }}
+          >
+            {diagramLoading && (
+              <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+                <CircularProgress sx={{ color: "#3b82f6" }} />
+                <Typography sx={{ color: "rgba(255, 255, 255, 0.7)" }}>
+                  Generando modelo relacional...
+                </Typography>
+              </Box>
+            )}
+          </Box>
+        </Paper>
+      </Container>
+    </Box>
+  );
+};
+
+export default RelationalModelPage;
