@@ -5,7 +5,7 @@ import ERPage from "./components/erPage/ERPage";
 import SqlAlgebra from "./Pages/sqlAlgebra";
 import AlgebraSql from "./Pages/AlgebraSql";
 import EERPage from "./components/eerPage/eerPage";
-
+import Relacional from "./Pages/relacional"
 
 function App() {
   return (
@@ -17,7 +17,7 @@ function App() {
         <Route path="/options/eer" element={<EERPage/>} />
         <Route path="/sql-to-algebra" element={<SqlAlgebra />} />
         <Route path="/algebra-to-sql" element={<AlgebraSql />} />
-        <Route path="/my-er" element={<Relacional />} />
+        <Route path="/options/relational" element={<Relacional />} />
       </Routes>
     </BrowserRouter>
   );
