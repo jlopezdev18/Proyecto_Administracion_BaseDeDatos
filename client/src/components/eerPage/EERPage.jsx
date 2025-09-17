@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import { useState, useEffect } from "react";
 import {
   Box,
@@ -87,13 +88,12 @@ const EERPage = () => {
             ),
           ]);
 
-        const [tablesResult, columnsResult, relationsResult] = await Promise.all(
-          [
+        const [tablesResult, columnsResult, relationsResult] =
+          await Promise.all([
             tablesResponse.json(),
             columnsResponse.json(),
             relationsResponse.json(),
-          ]
-        );
+          ]);
 
         if (
           tablesResult.success &&
@@ -178,15 +178,39 @@ const EERPage = () => {
       currentY = 100;
 
     // Separar entidades principales y subtipos
-    const mainEntities = tableNames.filter(t => !generalizations.some(g => g.subtypes.includes(t.name)));
-    const subEntities = tableNames.filter(t => generalizations.some(g => g.subtypes.includes(t.name)));
+    const mainEntities = tableNames.filter(
+      (t) =>
+        !generalizations.some((g) => g.subtypes.includes(t.name)) ||
+        t.name === "Proyecto"
+    );
+    const subEntities = tableNames.filter((t) =>
+      generalizations.some(
+        (g) => g.subtypes.includes(t.name) && t.name !== "Proyecto"
+      )
+    ); // Excluir "Proyecto"
+
+    console.log(
+      "All table names:",
+      tableNames.map((t) => t.name)
+    );
+    console.log("Generalizations:", generalizations);
+    console.log(
+      "Main entities:",
+      mainEntities.map((t) => t.name)
+    );
+    console.log(
+      "Sub entities:",
+      subEntities.map((t) => t.name)
+    );
 
     const tablePositions = {};
     const tableElements = {};
+    // Mapear atributos por entidad para poder reubicarlos si la entidad cambia de posición (p. ej., en generalización)
+    const entityAttributes = {}; // { [entityName]: Array<dia.Element> }
 
-    // Fila superior: entidades principales
-    const entitySpacingX = 350;
-    const entityStartX = 200;
+    // Fila superior: entidades principales - Mayor separación entre Proyecto y Empleado
+    const entitySpacingX = 500; // Aumentado de 350 a 500
+    const entityStartX = 150;
     const entityY = 120;
 
     mainEntities.forEach((table, idx) => {
@@ -200,27 +224,30 @@ const EERPage = () => {
       tablePositions[table.name] = { x, y };
       tableElements[table.name] = tableRect;
 
-      // Atributos en círculo pequeño alrededor de la entidad
+      // Atributos en círculo alrededor de la entidad
       const columns = tableColumns[table.name] || [];
       const center = { x: x + 75, y: y + 30 };
+      // Inicializar contenedor de atributos de esta entidad
+      entityAttributes[table.name] = [];
       columns.forEach((column, colIndex) => {
         const columnName = column.column;
         const isPrimaryKey = column.isPrimaryKey || false;
 
-        let radius = 90;
+        let radius = 120; // Radio base aumentado
         let angle;
-        if (table.name === "Arquitecto") {
-          angle = Math.PI + (Math.PI / (columns.length + 1)) * (colIndex + 1);
-          radius = 120;
-        } else if (table.name === "Administrativo") {
-          angle = 0 + (Math.PI / (columns.length + 1)) * (colIndex + 1);
-          radius = 120;
-        } else if (table.name === "Empleado") {
+
+        if (table.name === "Empleado") {
+          // Para Empleado, usar un radio mayor y distribución completa
           angle = (2 * Math.PI * colIndex) / columns.length;
-          radius = 150;
+          radius = 180;
+        } else if (table.name === "Proyecto") {
+          // Para Proyecto, distribuir en círculo completo
+          angle = (2 * Math.PI * colIndex) / columns.length;
+          radius = 130;
         } else {
+          // Para otras entidades principales
           angle = (2 * Math.PI * colIndex) / columns.length;
-          radius = 90;
+          radius = 120;
         }
 
         const attrX = center.x + radius * Math.cos(angle) - 60;
@@ -229,13 +256,15 @@ const EERPage = () => {
         const columnShape = column.isMultivalued
           ? new MultivaluedAttribute()
           : isPrimaryKey
-            ? new Key()
-            : new Attribute();
+          ? new Key()
+          : new Attribute();
 
         columnShape.position(attrX, attrY);
         columnShape.resize(120, 40);
         columnShape.addTo(graph);
         columnShape.attr("text", { text: columnName });
+        // Guardar referencia del atributo para posibles reubicaciones
+        entityAttributes[table.name].push(columnShape);
 
         const link = new shapes.standard.Link({
           source: { id: tableRect.id },
@@ -247,10 +276,9 @@ const EERPage = () => {
       });
     });
 
-    
-    const subtypeY = 400;
+    const subtypeY = 450; // Aumentado para dar más espacio
     subEntities.forEach((table, idx) => {
-      const x = entityStartX + idx * entitySpacingX;
+      const x = entityStartX + idx * entitySpacingX; // Usar el mismo espaciado que las entidades principales
       const y = subtypeY;
       const tableRect = new Entity();
       tableRect.position(x, y);
@@ -260,23 +288,38 @@ const EERPage = () => {
       tablePositions[table.name] = { x, y };
       tableElements[table.name] = tableRect;
 
-      
+      // Atributos en círculo alrededor de los subtipos
       const columns = tableColumns[table.name] || [];
       const center = { x: x + 75, y: y + 30 };
+      // Inicializar contenedor de atributos de esta entidad
+      entityAttributes[table.name] = [];
       columns.forEach((column, colIndex) => {
+        // Usar la misma distribución circular para todos los subtipos
         const angle = (2 * Math.PI * colIndex) / columns.length;
-        const radius = 90;
-        const attrX = center.x + radius * Math.cos(angle) - 500;
-        const attrY = center.y + radius * Math.sin(angle) + 200;
+        let radius = 100; // Radio base para subtipos
+
+        // Ajustar radio ligeramente para cada subtipo
+        if (table.name === "Arquitecto") {
+          radius = 100;
+        } else if (table.name === "Administrativo") {
+          radius = 100;
+        } else if (table.name === "Ingeniero") {
+          radius = 100;
+        }
+
+        const attrX = center.x + radius * Math.cos(angle) - 60;
+        const attrY = center.y + radius * Math.sin(angle) - 20;
         const columnShape = column.isMultivalued
           ? new MultivaluedAttribute()
           : column.isPrimaryKey
-            ? new Key()
-            : new Attribute();
+          ? new Key()
+          : new Attribute();
         columnShape.position(attrX, attrY);
         columnShape.resize(120, 40);
         columnShape.addTo(graph);
         columnShape.attr("text", { text: column.column });
+        // Guardar referencia del atributo para posibles reubicaciones
+        entityAttributes[table.name].push(columnShape);
         const link = new shapes.standard.Link({
           source: { id: tableRect.id },
           target: { id: columnShape.id },
@@ -290,19 +333,28 @@ const EERPage = () => {
     try {
       if (generalizations && Array.isArray(generalizations)) {
         generalizations.forEach((gen) => {
-          const superEntity = tableElements[gen.supertype];
-          const superPos = tablePositions[gen.supertype];
-          if (!superEntity || !superPos) {
-            console.warn("Entidad o posición no encontrada para:", gen.supertype);
+          // Solo procesar generalizaciones que NO tengan "Proyecto" como supertype
+          // pero permitir que "Proyecto" esté en subtypes (y lo filtraremos después)
+          if (gen.supertype === "Proyecto") {
+            
             return;
           }
 
-          
-          const baseX = superPos.x + 75; 
+          const superEntity = tableElements[gen.supertype];
+          const superPos = tablePositions[gen.supertype];
+          if (!superEntity || !superPos) {
+            console.warn(
+              "Entidad o posición no encontrada para:",
+              gen.supertype
+            );
+            return;
+          }
+
+          const baseX = superPos.x + 75;
           const superY = superPos.y;
-          const circleY = superY + 120;      // Más espacio debajo del supertype
-          const triangleY = circleY + 60;    // Más espacio debajo del círculo
-          const subtypesY = triangleY + 80;  // Más espacio debajo del triángulo
+          const circleY = superY + 120; // Más espacio debajo del supertype
+          const triangleY = circleY + 60; // Más espacio debajo del círculo
+          const subtypesY = triangleY + 80; // Más espacio debajo del triángulo
 
           // Círculo debajo del supertype
           const circle = new GeneralizationCircle();
@@ -316,10 +368,10 @@ const EERPage = () => {
           triangle.resize(60, 40);
           triangle.addTo(graph);
 
-          if (gen.exclusive) { 
+          if (gen.exclusive) {
             const arc = new ExclusivityArc();
             arc.position(baseX - 30, circleY - 35);
-            arc.resize(60, 30);  
+            arc.resize(60, 30);
             arc.addTo(graph);
           }
 
@@ -343,18 +395,38 @@ const EERPage = () => {
           superEntity.attr("text/text", gen.supertype);
 
           if (Array.isArray(gen.subtypes)) {
-            const total = gen.subtypes.length;
-            const spacing = 220; 
+            // Filtrar "Proyecto" de los subtypes
+            const filteredSubtypes = gen.subtypes.filter(
+              (subtype) => subtype !== "Proyecto"
+            );
+            const total = filteredSubtypes.length;
+            const spacing = 220;
             const startX = baseX - ((total - 1) * spacing) / 2;
-            gen.subtypes.forEach((subtype, idx) => {
+            filteredSubtypes.forEach((subtype, idx) => {
               const subEntity = tableElements[subtype];
               if (!subEntity) {
                 console.warn("Subentidad no encontrada para:", subtype);
                 return;
               }
-              
+
               subEntity.position(startX + idx * spacing - 75, subtypesY);
               subEntity.attr("text/text", subtype);
+
+              // Reubicar atributos del subtipo para que sigan a la entidad
+              const attrs = entityAttributes[subtype] || [];
+              const cols = tableColumns[subtype] || [];
+              const newCenter = {
+                x: startX + idx * spacing,
+                y: subtypesY + 30,
+              };
+              const radius = 100;
+              attrs.forEach((attrShape, colIndex) => {
+                const angle =
+                  cols.length > 0 ? (2 * Math.PI * colIndex) / cols.length : 0;
+                const ax = newCenter.x + radius * Math.cos(angle) - 60;
+                const ay = newCenter.y + radius * Math.sin(angle) - 20;
+                attrShape.position(ax, ay);
+              });
 
               const linkSub = new shapes.standard.Link({
                 source: { id: triangle.id },
@@ -371,8 +443,97 @@ const EERPage = () => {
       console.error("Error al renderizar generalizaciones:", err);
     }
 
+    // Agregar relación entre Proyecto y Empleado con rombo
+    const proyectoElement = tableElements["Proyecto"];
+    const empleadoElement = tableElements["Empleado"];
+    const proyectoPos = tablePositions["Proyecto"];
+    const empleadoPos = tablePositions["Empleado"];
+
+    if (proyectoElement && empleadoElement && proyectoPos && empleadoPos) {
+      const proyectoCenter = { x: proyectoPos.x + 75, y: proyectoPos.y + 30 };
+      const empleadoCenter = { x: empleadoPos.x + 75, y: empleadoPos.y + 30 };
+
+      const relationShapeX = (proyectoCenter.x + empleadoCenter.x) / 2 - 40;
+      const relationShapeY = (proyectoCenter.y + empleadoCenter.y) / 2 - 20;
+
+      const diamond = new Relationship();
+      diamond.position(relationShapeX, relationShapeY);
+      diamond.resize(120, 90);
+      diamond.addTo(graph);
+      diamond.attr("text", { text: "Trabaja En" });
+
+      const link1 = new shapes.standard.Link({
+        source: { id: diamond.id },
+        target: { id: proyectoElement.id },
+        attrs: { line: { stroke: "#f59e0b", strokeWidth: 2 } },
+        labels: [
+          {
+            position: 0.85,
+            attrs: {
+              text: {
+                text: "(1,N)",
+                fill: "#f59e0b",
+                fontSize: 16,
+                fontWeight: "bold",
+                fontFamily: "Arial, sans-serif",
+              },
+            },
+          },
+          {
+            position: 0.1,
+            attrs: {
+              text: {
+                text: "N",
+                fill: "#f59e0b",
+                fontSize: 16,
+                fontWeight: "bold",
+                fontFamily: "Arial, sans-serif",
+              },
+            },
+          },
+        ],
+        connector: { name: "straight" },
+      });
+
+      const link2 = new shapes.standard.Link({
+        source: { id: diamond.id },
+        target: { id: empleadoElement.id },
+        attrs: { line: { stroke: "#f59e0b", strokeWidth: 2 } },
+        labels: [
+          {
+            position: 0.85,
+            attrs: {
+              text: {
+                text: "(1,1)",
+                fill: "#f59e0b",
+                fontSize: 16,
+                fontWeight: "bold",
+                fontFamily: "Arial, sans-serif",
+              },
+            },
+          },
+          {
+            position: 0.1,
+            attrs: {
+              text: {
+                text: "1",
+                fill: "#f59e0b",
+                fontSize: 16,
+                fontWeight: "bold",
+                fontFamily: "Arial, sans-serif",
+              },
+            },
+          },
+        ],
+        connector: { name: "straight" },
+      });
+
+      graph.addCell(link1);
+      graph.addCell(link2);
+    }
 
     paper.transformToFitContent({ padding: 20, maxScale: 1, minScale: 0.2 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDb, tableNames, columnNames, relations]);
 
   return (
