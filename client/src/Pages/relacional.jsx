@@ -106,13 +106,66 @@ const RelationalModelPage = () => {
     });
 
     const tableElements = {};
-    let x = 100,
-      y = 100;
+    let x = 100;
+    let y = 100;
 
-    tables.forEach((table, index) => {
-      const rect = new shapes.standard.HeaderedRectangle();
+    // Compute table stats to derive a general ordering: parents at top, then independent children, then subtypes
+    const relationStats = tables.reduce((acc, t) => {
+      acc[t.tableName] = { referencedBy: 0, referencing: 0 };
+      return acc;
+    }, {});
+
+    relations.forEach((rel) => {
+      if (relationStats[rel.referenced_table])
+        relationStats[rel.referenced_table].referencedBy += 1;
+      if (relationStats[rel.referencing_table])
+        relationStats[rel.referencing_table].referencing += 1;
+    });
+
+    const sortedTables = [...tables].sort((a, b) => {
+      const aStats = relationStats[a.tableName] || {
+        referencedBy: 0,
+        referencing: 0,
+      };
+      const bStats = relationStats[b.tableName] || {
+        referencedBy: 0,
+        referencing: 0,
+      };
+      const aRelations = aStats.referencedBy + aStats.referencing;
+      const bRelations = bStats.referencedBy + bStats.referencing;
+
+      // Determine if PK is also FK (common in subtype tables) — these go later
+      const aPkAlsoFk = (a.columns || []).some(
+        (c) => c.isPrimaryKey && c.isForeignKey
+      );
+      const bPkAlsoFk = (b.columns || []).some(
+        (c) => c.isPrimaryKey && c.isForeignKey
+      );
+
+      // 1) Parents first: higher referencedBy
+      if (aStats.referencedBy !== bStats.referencedBy)
+        return bStats.referencedBy - aStats.referencedBy;
+      // 2) Independent entities before subtypes: pkAlsoFk false first
+      if (aPkAlsoFk !== bPkAlsoFk) return aPkAlsoFk ? 1 : -1;
+      // 3) Higher overall degree next
+      if (aRelations !== bRelations) return bRelations - aRelations;
+      // 4) Stable by name
+      return a.tableName.localeCompare(b.tableName);
+    });
+
+    sortedTables.forEach((table) => {
+      // Build attribute list with primary key attributes first
+      const pkCols = (table.columns || []).filter((c) => c.isPrimaryKey);
+      const nonPkCols = (table.columns || []).filter((c) => !c.isPrimaryKey);
+      const orderedCols = [...pkCols, ...nonPkCols];
+      const attributesLine = orderedCols.map((c) => c.columnName).join(", ");
+
+      const rect = new shapes.standard.Rectangle();
       rect.position(x, y);
-      rect.resize(260, 90 + table.columns.length * 22);
+      // Compact fixed size for cleaner look
+      const rectWidth = 520;
+      const rectHeight = 80;
+      rect.resize(rectWidth, rectHeight);
       rect.attr({
         body: {
           fill: "#f9fafb",
@@ -121,35 +174,18 @@ const RelationalModelPage = () => {
           rx: 12,
           ry: 12,
         },
-        header: {
-          fill: "#211e77ff",
-        },
-        headerText: {
-          text: table.tableName,
-          fill: "#ffffff",
-          fontWeight: "bold",
-          fontSize: 15,
-          fontFamily: "Segoe UI, sans-serif",
-        },
-        bodyText: {
-          text: table.columns
-            .map(
-              (col) =>
-                `${col.isPrimaryKey
-                  ? "🔑 "
-                  : col.isForeignKey
-                    ? "🔗 "
-                    : "▫️ "
-                } ${col.columnName} : ${col.dataType}`
-            )
-            .join("\n"),
-          fontSize: 16,
+        label: {
+          text: `${table.tableName} (${attributesLine})`,
           fill: "#111827",
-          textAnchor: "left",
           fontWeight: "bold",
-          fontFamily: "Consolas, monospace",
-          refX: -120,
-          refY: 0,
+          fontSize: 14,
+          fontFamily: "Segoe UI, sans-serif",
+          refY: "50%",
+          yAlignment: "middle",
+          textWrap: {
+            width: rectWidth - 28,
+            ellipsis: true,
+          },
         },
       });
 
@@ -157,13 +193,9 @@ const RelationalModelPage = () => {
 
       tableElements[table.tableName] = rect;
 
-      x += 300;
-      if ((index + 1) % 3 === 0) {
-        x = 100;
-        y += 320;
-      }
+      // Single-column vertical stacking with compact gap
+      y += rectHeight + 40; // vertical gap between rectangles
     });
-
 
     // Relaciones (FKs)
     relations.forEach((rel) => {
@@ -172,12 +204,17 @@ const RelationalModelPage = () => {
 
       if (fromTable && toTable) {
         const link = new shapes.standard.Link();
+        // Route around elements and add arrowhead
+        link.router("manhattan", { padding: 40 });
+        link.connector("rounded", { radius: 8 });
+
         link.source(fromTable);
         link.target(toTable);
         link.attr({
           line: {
             stroke: "#f59e0b",
             strokeWidth: 2,
+            strokeDasharray: "6 4", // dashed line to represent relationships
             targetMarker: {
               type: "path",
               d: "M 10 -5 0 0 10 5 Z",
@@ -185,6 +222,23 @@ const RelationalModelPage = () => {
             },
           },
         });
+
+        // Consolidated label: FK -> PK
+        const fkTbl = rel.referencing_table;
+        const pkTbl = rel.referenced_table;
+        link.appendLabel({
+          position: 0.5,
+          attrs: {
+            text: {
+              text: `${fkTbl}.${rel.referencing_column} → ${pkTbl}.${rel.referenced_column}`,
+              fill: "#f59e0b",
+              fontSize: 11,
+              fontFamily: "Segoe UI, sans-serif",
+            },
+            rect: { fill: "transparent", stroke: "none" },
+          },
+        });
+
         graph.addCell(link);
       }
     });
@@ -202,13 +256,24 @@ const RelationalModelPage = () => {
     >
       <AppBar
         position="static"
-        sx={{ background: "rgba(30, 41, 59, 0.95)", backdropFilter: "blur(10px)" }}
+        sx={{
+          background: "rgba(30, 41, 59, 0.95)",
+          backdropFilter: "blur(10px)",
+        }}
       >
         <Toolbar>
-          <IconButton color="inherit" onClick={() => navigate("/")} sx={{ mr: 1 }}>
+          <IconButton
+            color="inherit"
+            onClick={() => navigate("/")}
+            sx={{ mr: 1 }}
+          >
             <HomeIcon />
           </IconButton>
-          <IconButton color="inherit" onClick={() => navigate("/options")} sx={{ mr: 2 }}>
+          <IconButton
+            color="inherit"
+            onClick={() => navigate("/options")}
+            sx={{ mr: 2 }}
+          >
             <ArrowBackIcon />
           </IconButton>
           <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 600 }}>
@@ -283,7 +348,9 @@ const RelationalModelPage = () => {
                           "&:hover": { background: "rgba(59, 130, 246, 0.1)" },
                           "&.Mui-selected": {
                             background: "rgba(59, 130, 246, 0.2)",
-                            "&:hover": { background: "rgba(59, 130, 246, 0.3)" },
+                            "&:hover": {
+                              background: "rgba(59, 130, 246, 0.3)",
+                            },
                           },
                         }}
                       >
@@ -321,7 +388,14 @@ const RelationalModelPage = () => {
             }}
           >
             {diagramLoading && (
-              <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 2,
+                }}
+              >
                 <CircularProgress sx={{ color: "#3b82f6" }} />
                 <Typography sx={{ color: "rgba(255, 255, 255, 0.7)" }}>
                   Generando modelo relacional...

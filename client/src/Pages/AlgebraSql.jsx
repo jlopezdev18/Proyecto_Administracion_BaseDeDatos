@@ -9,6 +9,7 @@ import {
   Stack,
   AppBar,
   Toolbar,
+  Tooltip,
 } from "@mui/material";
 import HomeIcon from "@mui/icons-material/Home";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
@@ -27,6 +28,21 @@ const AlgebraToSql = () => {
 
   const insertSymbol = (symbol) => {
     setAlgebraQuery((prev) => prev + symbol);
+  };
+
+  const SYMBOLS = ["π", "σ", "×", "∪", "∩", "-", "ρ", "⋈", "⟕", "⟖", "⟗"];
+  const TOOLTIPS = {
+    π: "Proyección (selección de columnas): π columnas (Expresión)",
+    σ: "Selección (filtro/WHERE): σ condición (Expresión)",
+    "×": "Producto cartesiano: A × B",
+    "∪": "Unión de conjuntos: A ∪ B",
+    "∩": "Intersección de conjuntos: A ∩ B",
+    "-": "Diferencia de conjuntos: A - B",
+    ρ: "Renombramiento: ρ Alias (Expresión)",
+    "⋈": "Theta Join (INNER JOIN): A ⋈_{condición} B",
+    "⟕": "Left Outer Join: A ⟕_{condición} B",
+    "⟖": "Right Outer Join: A ⟖_{condición} B",
+    "⟗": "Full Outer Join: A ⟗_{condición} B",
   };
 
   return (
@@ -74,23 +90,30 @@ const AlgebraToSql = () => {
       <Container maxWidth="md" sx={{ py: 3 }}>
         {/* Botones de los símbolos */}
         <Stack direction="row" spacing={2} mb={2} flexWrap="wrap">
-          {["π", "σ", "×", "∪", "∩", "-", "ρ"].map((sym) => (
-            <Button
+          {SYMBOLS.map((sym) => (
+            <Tooltip
               key={sym}
-              variant="outlined"
-              onClick={() => insertSymbol(sym)}
-              sx={{
-                color: "#fff",
-                borderColor: "#fff",
-                fontSize: "1.5rem",
-                fontWeight: "bold",
-                minWidth: "60px",
-                minHeight: "50px",
-                textTransform: "none",
-              }}
+              title={TOOLTIPS[sym] || sym}
+              arrow
+              placement="top"
             >
-              {sym}
-            </Button>
+              <Button
+                aria-label={TOOLTIPS[sym] || sym}
+                variant="outlined"
+                onClick={() => insertSymbol(sym)}
+                sx={{
+                  color: "#fff",
+                  borderColor: "#fff",
+                  fontSize: "1.5rem",
+                  fontWeight: "bold",
+                  minWidth: "60px",
+                  minHeight: "50px",
+                  textTransform: "none",
+                }}
+              >
+                {sym}
+              </Button>
+            </Tooltip>
           ))}
         </Stack>
 
